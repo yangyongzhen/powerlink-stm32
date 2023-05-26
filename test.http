@@ -1,0 +1,8 @@
+POST https://chatgpt.qdymys.cn/api/chat-process HTTP/1.1
+content-type: application/json
+sec-ch-ua:	" Not A;Brand";v="99", "Chromium";v="102"
+user-agent:	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.75.1 Chrome/102.0.5005.194 Electron/19.1.9 Safari/537.36
+sec-ch-ua-platform:	"Windows"
+accept:	*/*
+
+{"prompt":"what is your name?\n","options":{"parentMessageId":"chatcmpl-75riAosOIY7XxEqElEEwmsBixkMTS"},"systemMessage":"You are the GPT3.5"}
