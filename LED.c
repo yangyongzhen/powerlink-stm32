@@ -32,17 +32,24 @@
    ---------------------------------------------------------------------------*/
 
 #include "LED.h"
-#include "GPIO_STM32F10x.h"
+#include "stm32f4xx_hal.h"
 
-const GPIO_PIN_ID Pin_LED[] = {
-  { GPIOA,  8 },
-  { GPIOD,  2 },
-	{ GPIOA,  2 }, //W25Q64 CS
-	{ GPIOC,  13 }, // CS
-	{ GPIOC,  0 }, // reset
+/* GPIO Pin identifier */
+typedef struct _GPIO_PIN {
+  GPIO_TypeDef *port;
+  uint16_t      pin;
+  uint16_t      reserved;
+} GPIO_PIN;
+
+const GPIO_PIN LED_PIN[] = {
+  { GPIOA,  GPIO_PIN_8,0 }, //LED0
+  { GPIOD,  GPIO_PIN_2,0 }, //LED1
+	{ GPIOA,  GPIO_PIN_2,0 }, //W25Q64 CS
+	{ GPIOC,  GPIO_PIN_13,0 }, //w5500 CS
+	{ GPIOC,  GPIO_PIN_0,0 }, // w5500 reset
 };
 
-#define LED_COUNT (sizeof(Pin_LED)/sizeof(GPIO_PIN_ID))
+#define LED_COUNT (sizeof(LED_PIN)/sizeof(GPIO_PIN))
 
 
 /**
@@ -53,15 +60,24 @@ const GPIO_PIN_ID Pin_LED[] = {
    - \b -1: function failed
 */
 int32_t LED_Initialize (void) {
-  uint32_t n;
+	GPIO_InitTypeDef GPIO_InitStruct;
+  uint32_t i;
+	
+	 /* GPIO Ports Clock Enable */
+  __GPIOA_CLK_ENABLE();
+	__GPIOB_CLK_ENABLE();
+	__GPIOC_CLK_ENABLE();
+  __GPIOD_CLK_ENABLE();
+	
+	GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull  = GPIO_PULLDOWN;
+  GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
 
   /* Configure pins: Push-pull Output Mode (50 MHz) with Pull-down resistors */
-  for (n = 0; n < LED_COUNT; n++) {
-    GPIO_PortClock   (Pin_LED[n].port, true);
-    GPIO_PinWrite    (Pin_LED[n].port, Pin_LED[n].num, 0);
-    GPIO_PinConfigure(Pin_LED[n].port, Pin_LED[n].num,
-                      GPIO_OUT_PUSH_PULL,
-                      GPIO_MODE_OUT2MHZ);
+  for (i = 0; i < LED_COUNT; i++) {
+    HAL_GPIO_WritePin(LED_PIN[i].port, LED_PIN[i].pin, GPIO_PIN_SET);
+    GPIO_InitStruct.Pin   = LED_PIN[i].pin;
+    HAL_GPIO_Init(LED_PIN[i].port, &GPIO_InitStruct);
   }
 
   return 0;
@@ -75,13 +91,11 @@ int32_t LED_Initialize (void) {
    - \b -1: function failed
 */
 int32_t LED_Uninitialize (void) {
-  uint32_t n;
+  uint32_t i;
 
   /* Configure pins: Input mode, without Pull-up/down resistors */
-  for (n = 0; n < LED_COUNT; n++) {
-    GPIO_PinConfigure(Pin_LED[n].port, Pin_LED[n].num,
-                      GPIO_IN_FLOATING,
-                      GPIO_MODE_INPUT);
+  for (i = 0; i < LED_COUNT; i++) {
+    HAL_GPIO_DeInit(LED_PIN[i].port, LED_PIN[i].pin);
   }
 
   return 0;
@@ -99,7 +113,7 @@ int32_t LED_On (uint32_t num) {
   int32_t retCode = 0;
 
   if (num < LED_COUNT) {
-    GPIO_PinWrite(Pin_LED[num].port, Pin_LED[num].num, 1);
+    HAL_GPIO_WritePin(LED_PIN[num].port, LED_PIN[num].pin, GPIO_PIN_RESET);
   }
   else {
     retCode = -1;
@@ -120,7 +134,7 @@ int32_t LED_Off (uint32_t num) {
   int32_t retCode = 0;
 
   if (num < LED_COUNT) {
-    GPIO_PinWrite(Pin_LED[num].port, Pin_LED[num].num, 0);
+    HAL_GPIO_WritePin(LED_PIN[num].port, LED_PIN[num].pin, GPIO_PIN_SET);
   }
   else {
     retCode = -1;

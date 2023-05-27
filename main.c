@@ -14,7 +14,7 @@
 #include "RTE_Components.h"
 #include  CMSIS_device_header
 #include "cmsis_os2.h"
-#include "stm32f10x.h"
+#include "stm32f4xx_hal.h"
  
 #include "LED.h"
 #include "Driver_USART.h"
