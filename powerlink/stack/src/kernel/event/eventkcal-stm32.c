@@ -81,9 +81,9 @@ CAL module.
 */
 typedef struct
 {
-    void *                  threadHandle;
-    void *                  semUserData;
-    void *                 semKernelData;
+    osThreadId_t            threadHandle;
+    osSemaphoreId_t         semUserData;
+    osSemaphoreId_t         semKernelData;
     BOOL                    fInitialized;
     BOOL                    fStopThread;
 } tEventkCalInstance;
@@ -96,7 +96,7 @@ static tEventkCalInstance   instance_l;             ///< Instance variable of ke
 //------------------------------------------------------------------------------
 // local function prototypes
 //------------------------------------------------------------------------------
-static UINT32 eventThread(void* arg);
+static void eventThread(void* arg);
 static void signalKernelEvent(void);
 static void signalUserEvent(void);
 
@@ -126,6 +126,12 @@ tOplkError eventkcal_init(void)
 
 //    if ((instance_l.semKernelData = CreateSemaphore(NULL, 0, 100, "Local\\semKernelEvent")) == NULL)
 //        goto Exit;
+	
+		if ((instance_l.semUserData = osSemaphoreNew(100, 0,NULL)) == NULL)
+			goto Exit;
+
+    if ((instance_l.semKernelData = osSemaphoreNew(100, 0,NULL)) == NULL)
+        goto Exit;
 
     if (eventkcal_initQueueCircbuf(kEventQueueK2U) != kErrorOk)
         goto Exit;
@@ -147,6 +153,7 @@ tOplkError eventkcal_init(void)
 //                                           (LPVOID)&instance_l,
 //                                           0,
 //                                           NULL);
+		instance_l.threadHandle = osThreadNew(eventThread,&instance_l,NULL);
     if (instance_l.threadHandle == NULL)
         goto Exit;
 
@@ -162,6 +169,12 @@ Exit:
 
 //    if (instance_l.semUserData != NULL)
 //        CloseHandle(instance_l.semUserData);
+		
+	  if (instance_l.semKernelData != NULL)
+        osSemaphoreDelete(instance_l.semKernelData);
+
+    if (instance_l.semUserData != NULL)
+        osSemaphoreDelete(instance_l.semUserData);
 
     eventkcal_exitQueueCircbuf(kEventQueueK2U);
     eventkcal_exitQueueCircbuf(kEventQueueU2K);
@@ -198,6 +211,8 @@ tOplkError eventkcal_exit(void)
 
         //CloseHandle(instance_l.semKernelData);
         //CloseHandle(instance_l.semUserData);
+			 osSemaphoreDelete(instance_l.semKernelData);
+			 osSemaphoreDelete(instance_l.semUserData);
     }
     instance_l.fInitialized = FALSE;
 
@@ -289,19 +304,47 @@ This function contains the main function for the event handler thread.
 \return The function returns the thread exit code.
 */
 //------------------------------------------------------------------------------
-static UINT32  eventThread(void* arg)
+static void eventThread(void* arg)
 {
     const tEventkCalInstance*   pInstance = (const tEventkCalInstance*)arg;
-    DWORD                       waitResult;
+    osStatus_t waitResult;
 
     DEBUG_LVL_EVENTK_TRACE("Kernel event thread %d waiting for events...\n", GetCurrentThreadId());
     while (!pInstance->fStopThread)
     {
-      
+      waitResult = osSemaphoreAcquire(pInstance->semKernelData, 100UL);       // wait for max. 10 ticks for semaphore token to get available
+			switch (waitResult) {
+				case osOK:
+					if (eventkcal_getEventCountCircbuf(kEventQueueKInt) > 0)
+					{
+							eventkcal_processEventCircbuf(kEventQueueKInt);
+					}
+					else
+					{
+							if (eventkcal_getEventCountCircbuf(kEventQueueU2K) > 0)
+							{
+									eventkcal_processEventCircbuf(kEventQueueU2K);
+							}
+					}
+					break;
+				case osErrorResource:
+					DEBUG_LVL_ERROR_TRACE("kernel event osErrorResource!\n");
+					break;
+				case osErrorParameter:
+					DEBUG_LVL_ERROR_TRACE("kernel event osErrorParameter!\n");
+					break;
+				case osErrorTimeout:
+					DEBUG_LVL_ERROR_TRACE("kernel event timeout!\n");
+					break;
+				default:
+					DEBUG_LVL_ERROR_TRACE("%s() Semaphore wait unknown error! \n",
+                                      __func__);
+					break;
+			}
     }
 
     DEBUG_LVL_EVENTK_TRACE("Kernel event thread is exiting!\n");
-    return 0;
+
 }
 
 //------------------------------------------------------------------------------
@@ -315,6 +358,7 @@ the circular buffer library as signal callback function.
 static void signalUserEvent(void)
 {
     //ReleaseSemaphore(instance_l.semUserData, 1, NULL);
+	osSemaphoreRelease(instance_l.semUserData);
 }
 
 //------------------------------------------------------------------------------
@@ -328,6 +372,7 @@ the circular buffer library as signal callback function.
 static void signalKernelEvent(void)
 {
     //ReleaseSemaphore(instance_l.semKernelData, 1, NULL);
+	osSemaphoreRelease(instance_l.semKernelData);
 }
 
 /// \}

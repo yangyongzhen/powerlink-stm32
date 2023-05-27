@@ -1,17 +1,16 @@
 /**
 ********************************************************************************
-\file   windows/target-mutex.c
+\file   getopt.c
 
-\brief  Architecture specific mutex implementation
+\brief  Get command line options
 
-This file contains the mutex implementation for Windows. It uses
-Windows mutexes for the implementation and can therefore synchronize different
-threads or processes.
+The file implements the getopt() function used to parse command line options.
 
-\ingroup module_target
+\ingroup module_lib_getopt
 *******************************************************************************/
-
 /*------------------------------------------------------------------------------
+Copyright (c) 1987, 1993, 1994
+      The Regents of the University of California.  All rights reserved.
 Copyright (c) 2016, B&R Industrial Automation GmbH
 All rights reserved.
 
@@ -41,8 +40,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 // includes
 //------------------------------------------------------------------------------
-#include <common/oplkinc.h>
-#include <common/target.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 //============================================================================//
 //            G L O B A L   D E F I N I T I O N S                             //
@@ -51,10 +51,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 // const defines
 //------------------------------------------------------------------------------
+#define BADCH   (int)'?'
+#define BADARG  (int)':'
+#define EMSG    ""
 
 //------------------------------------------------------------------------------
 // module global vars
 //------------------------------------------------------------------------------
+int     opterr = 1;         /* if error message should be printed */
+int     optind = 1;         /* index into parent argv vector */
+int     optopt;             /* character checked for validity */
+int     optreset;           /* reset getopt */
+char*   optarg;             /* argument associated with option */
 
 //------------------------------------------------------------------------------
 // global function prototypes
@@ -86,119 +94,112 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //------------------------------------------------------------------------------
 /**
-\brief  Create Mutex
+\brief    Get command line option
 
-The function creates a mutex.
+The funtion implements a command line parser compatible with Linux standard
+getopt() functon.
 
-\param[in]      mutexName_p         The name of the mutex to create.
-\param[out]     pMutex_p            Pointer to store the created mutex.
 
-\return The function returns a tOplkError error code.
-\retval kErrorOk                    Mutex was successfully created.
-\retval kErrorNoFreeInstance        An error occurred while creating the mutex.
+\param[in]      nargc               Number of arguments.
+\param[in]      nargv               Pointer to argument string.
+\param[in]      ostr                Pointer to option string.
 
-\ingroup module_target
+\return If an option was successfully found, then getopt() returns the option
+        character. If all command-line options have been parsed, then getopt()
+        returns -1. If getopt() encounters an option character that was not in
+        optstring, then '?' is returned. If getopt() encounters an option with
+        a missing argument, then the return value depends on the first character
+        in optstring: if it is ':', then ':' is returned; otherwise '?' is
+        returned.
 */
 //------------------------------------------------------------------------------
-tOplkError target_createMutex(const char* mutexName_p,
-                              OPLK_MUTEX_T* pMutex_p)
+int getopt(int nargc, char* const nargv[], const char* ostr)
 {
+    static char*    place = EMSG;              /* option letter processing */
+    char*           oli;                       /* option letter list index */
 
-  UNUSED_PARAMETER(mutexName_p);
-	pMutex_p =  osMutexNew(NULL);
-	return kErrorOk;
-}
+    if (optreset ||
+        (*place == 0))
+    {   /* update scanning pointer */
+        optreset = 0;
+        place = nargv[optind];
+        if ((optind >= nargc) ||
+            (*place++ != '-'))
+        {
+            /* Argument is absent or is not an option */
+            place = EMSG;
+            return -1;
+        }
 
-//------------------------------------------------------------------------------
-/**
-\brief  Destroy Mutex
+        optopt = *place++;
+        if ((optopt == '-') &&
+            (*place == 0))
+        {
+            /* "--" => end of options */
+            ++optind;
+            place = EMSG;
+            return -1;
+        }
 
-The function destroys a mutex.
+        if (optopt == 0)
+        {
+            /* Solitary '-', treat as a '-' option
+               if the program (eg su) is looking for it. */
+            place = EMSG;
+            if (strchr(ostr, '-') == NULL)
+                return -1;
 
-\param[in]      mutexId_p           The ID of the mutex to destroy.
-
-\ingroup module_target
-*/
-//------------------------------------------------------------------------------
-void target_destroyMutex(OPLK_MUTEX_T mutexId_p)
-{
-//CloseHandle(mutexId_p);
-	if(mutexId_p != NULL){
-		osMutexDelete(mutexId_p);
-	}
-}
-
-//------------------------------------------------------------------------------
-/**
-\brief  Lock Mutex
-
-The function locks a mutex.
-
-\param[in]      mutexId_p           The ID of the mutex to lock.
-
-\return The function returns a tOplkError error code.
-\retval kErrorOk                    Mutex was successfully locked.
-\retval kErrorNoFreeInstance        An error occurred while locking the mutex.
-
-\ingroup module_target
-*/
-//------------------------------------------------------------------------------
-tOplkError target_lockMutex(OPLK_MUTEX_T mutexId_p)
-{
-  
-    tOplkError  ret;
-	  osStatus_t status;
- 
-    ret = kErrorOk;
-		if (mutexId_p != NULL) {
-			status = osMutexAcquire(mutexId_p, osWaitForever);
-			if (status != osOK)  {
-				// handle failure code
-			}
-		}    
-    return ret;
-}
-
-//------------------------------------------------------------------------------
-/**
-\brief  Unlock Mutex
-
-The function unlocks a mutex.
-
-\param[in]      mutexId_p           The ID of the mutex to unlock.
-
-\ingroup module_target
-*/
-//------------------------------------------------------------------------------
-void target_unlockMutex(OPLK_MUTEX_T mutexId_p)
-{
-    //ReleaseMutex(mutexId_p);
-	osStatus_t status;
- 
-  if (mutexId_p != NULL)  {
-    status = osMutexRelease(mutexId_p);
-    if (status != osOK)  {
-      // handle failure code
+            optopt = '-';
+        }
     }
-  }
+    else
+        optopt = *place++;
+
+    /* See if option letter is one the caller wanted... */
+    if ((optopt == ':') ||
+        ((oli = strchr(ostr, optopt)) == NULL))
+    {
+        if (*place == 0)
+            ++optind;
+
+        if (opterr && *ostr != ':')
+            fprintf(stderr, "illegal option -- %c\n",optopt);
+
+        return BADCH;
+    }
+
+    /* Does this option need an argument? */
+    if (oli[1] != ':')
+    {
+        /* don't need argument */
+        optarg = NULL;
+        if (*place == 0)
+            ++optind;
+    }
+    else
+    {
+        /* Option-argument is either the rest of this argument or the
+           entire next argument. */
+        if (*place)
+            optarg = place;
+        else if (nargc > ++optind)
+            optarg = nargv[optind];
+        else
+        {
+            /* option-argument absent */
+            place = EMSG;
+            if (*ostr == ':')
+                return BADARG;
+
+            if (opterr)
+                fprintf(stderr, "option requires an argument -- %c\n", optopt);
+
+            return BADCH;
+        }
+
+        place = EMSG;
+        ++optind;
+    }
+
+    return optopt;                          /* return option letter */
 }
-
-int target_lock(void)
-{
-    target_enableGlobalInterrupt(FALSE);
-
-    return 0;
-}
-int target_unlock(void)
-{
-    target_enableGlobalInterrupt(TRUE);
-
-    return 0;
-}
-//============================================================================//
-//            P R I V A T E   F U N C T I O N S                               //
-//============================================================================//
-/// \name Private Functions
-/// \{
-
-/// \}

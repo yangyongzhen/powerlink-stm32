@@ -241,6 +241,25 @@
 #define IPPROTO_ND                   77       /**< UNOFFICIAL net disk protocol */
 #define IPPROTO_RAW                  255      /**< Raw IP packet */
 
+
+/* PHYCFGR register value */
+#define PHYCFGR_RST                  ~(1<<7)  //< For PHY reset, must operate AND mask.
+#define PHYCFGR_OPMD                 (1<<6)   // Configre PHY with OPMDC value
+#define PHYCFGR_OPMDC_ALLA           (7<<3)
+#define PHYCFGR_OPMDC_PDOWN          (6<<3)
+#define PHYCFGR_OPMDC_NA             (5<<3)
+#define PHYCFGR_OPMDC_100FA          (4<<3)
+#define PHYCFGR_OPMDC_100F           (3<<3)
+#define PHYCFGR_OPMDC_100H           (2<<3)
+#define PHYCFGR_OPMDC_10F            (1<<3)
+#define PHYCFGR_OPMDC_10H            (0<<3)           
+#define PHYCFGR_DPX_FULL             (1<<2)
+#define PHYCFGR_DPX_HALF             (0<<2)
+#define PHYCFGR_SPD_100              (1<<1)
+#define PHYCFGR_SPD_10               (0<<1)
+#define PHYCFGR_LNK_ON               (1<<0)
+#define PHYCFGR_LNK_OFF              (0<<0)
+
 /*********************************************************
 * iinchip access function
 *********************************************************/
@@ -280,6 +299,13 @@ void Reset_W5500(void);
 extern uint8 txsize[];
 extern uint8 rxsize[];
 
+/**
+ * @ingroup Common_register_access_function
+ * @brief Get @ref PHYCFGR register
+ * @return uint8_t. Value of @ref PHYCFGR register.
+ * @sa setPHYCFGR()
+ */
+void getPHYCFGR(uint8 *buf);
 /**
  @brief WIZCHIP_OFFSET_INC on IINCHIP_READ/WRITE
  * case1.

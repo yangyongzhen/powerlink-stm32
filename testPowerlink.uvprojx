@@ -14,16 +14,16 @@
       <uAC6>1</uAC6>
       <TargetOption>
         <TargetCommonOption>
-          <Device>STM32F103RC</Device>
+          <Device>STM32F103VE</Device>
           <Vendor>STMicroelectronics</Vendor>
           <PackID>Keil.STM32F1xx_DFP.2.4.0</PackID>
           <PackURL>http://www.keil.com/pack/</PackURL>
-          <Cpu>IRAM(0x20000000,0x0000C000) IROM(0x08000000,0x00040000) CPUTYPE("Cortex-M3") CLOCK(12000000) ELITTLE</Cpu>
+          <Cpu>IRAM(0x20000000,0x00010000) IROM(0x08000000,0x00080000) CPUTYPE("Cortex-M3") CLOCK(12000000) ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
           <StartupFile></StartupFile>
-          <FlashDriverDll>UL2CM3(-S0 -C0 -P0 -FD20000000 -FC1000 -FN1 -FF0STM32F10x_512 -FS08000000 -FL080000 -FP0($$Device:STM32F103RC$Flash\STM32F10x_512.FLM))</FlashDriverDll>
+          <FlashDriverDll>UL2CM3(-S0 -C0 -P0 -FD20000000 -FC1000 -FN1 -FF0STM32F10x_512 -FS08000000 -FL080000 -FP0($$Device:STM32F103VE$Flash\STM32F10x_512.FLM))</FlashDriverDll>
           <DeviceId>0</DeviceId>
-          <RegisterFile>$$Device:STM32F103RC$Device\Include\stm32f10x.h</RegisterFile>
+          <RegisterFile>$$Device:STM32F103VE$Device\Include\stm32f10x.h</RegisterFile>
           <MemoryEnv></MemoryEnv>
           <Cmp></Cmp>
           <Asm></Asm>
@@ -33,7 +33,7 @@
           <SLE66CMisc></SLE66CMisc>
           <SLE66AMisc></SLE66AMisc>
           <SLE66LinkerMisc></SLE66LinkerMisc>
-          <SFDFile>$$Device:STM32F103RC$SVD\STM32F103xx.svd</SFDFile>
+          <SFDFile>$$Device:STM32F103VE$SVD\STM32F103xx.svd</SFDFile>
           <bCustSvd>0</bCustSvd>
           <UseEnv>0</UseEnv>
           <BinPath></BinPath>
@@ -138,7 +138,7 @@
           </Flash1>
           <bUseTDR>1</bUseTDR>
           <Flash2>BIN\UL2CM3.DLL</Flash2>
-          <Flash3>"" ()</Flash3>
+          <Flash3></Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
           <pFcarmGrp></pFcarmGrp>
@@ -246,12 +246,12 @@
               <IRAM>
                 <Type>0</Type>
                 <StartAddress>0x20000000</StartAddress>
-                <Size>0xc000</Size>
+                <Size>0x10000</Size>
               </IRAM>
               <IROM>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0x40000</Size>
+                <Size>0x80000</Size>
               </IROM>
               <XRAM>
                 <Type>0</Type>
@@ -276,7 +276,7 @@
               <OCR_RVCT4>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0x40000</Size>
+                <Size>0x80000</Size>
               </OCR_RVCT4>
               <OCR_RVCT5>
                 <Type>1</Type>
@@ -301,7 +301,7 @@
               <OCR_RVCT9>
                 <Type>0</Type>
                 <StartAddress>0x20000000</StartAddress>
-                <Size>0xc000</Size>
+                <Size>0x20000</Size>
               </OCR_RVCT9>
               <OCR_RVCT10>
                 <Type>0</Type>
@@ -328,7 +328,7 @@
             <uC99>0</uC99>
             <uGnu>0</uGnu>
             <useXO>0</useXO>
-            <v6Lang>3</v6Lang>
+            <v6Lang>4</v6Lang>
             <v6LangP>3</v6LangP>
             <vShortEn>1</vShortEn>
             <vShortWch>1</vShortWch>
@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F10X_HD,_STM32</Define>
               <Undefine></Undefine>
-              <IncludePath>.\w5500;..\test;.\powerlink\stack\src;.\powerlink\stack\include;.\powerlink\stack\src\liboplkcn;.\powerlink\contrib</IncludePath>
+              <IncludePath>.\w5500;..\powerlink-stm32;.\powerlink\stack\src;.\powerlink\stack\include;.\powerlink\stack\src\liboplkcn;.\powerlink\contrib;.\app;.\common</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -454,21 +454,6 @@
           <GroupName>powerlink</GroupName>
           <Files>
             <File>
-              <FileName>netif-stm32.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\powerlink\stack\src\arch\stm32\netif-stm32.c</FilePath>
-            </File>
-            <File>
-              <FileName>target-mutex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\powerlink\stack\src\arch\stm32\target-mutex.c</FilePath>
-            </File>
-            <File>
-              <FileName>target-stm32.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\powerlink\stack\src\arch\stm32\target-stm32.c</FilePath>
-            </File>
-            <File>
               <FileName>ami.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\powerlink\stack\src\common\ami\ami.c</FilePath>
@@ -482,11 +467,6 @@
               <FileName>circbuffer.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\powerlink\stack\src\common\circbuf\circbuffer.c</FilePath>
-            </File>
-            <File>
-              <FileName>circbuf-stm32.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\powerlink\stack\src\common\circbuf\circbuf-stm32.c</FilePath>
             </File>
             <File>
               <FileName>dllcal-direct.c</FileName>
@@ -554,11 +534,6 @@
               <FilePath>.\powerlink\stack\src\kernel\dll\dllkstatemachine.c</FilePath>
             </File>
             <File>
-              <FileName>edrv-rawsock_stm32.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\powerlink\stack\src\kernel\edrv\edrv-rawsock_stm32.c</FilePath>
-            </File>
-            <File>
               <FileName>errhndk.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\powerlink\stack\src\kernel\errhnd\errhndk.c</FilePath>
@@ -582,11 +557,6 @@
               <FileName>eventkcalintf-circbuf.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\powerlink\stack\src\kernel\event\eventkcalintf-circbuf.c</FilePath>
-            </File>
-            <File>
-              <FileName>eventkcal-stm32.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\powerlink\stack\src\kernel\event\eventkcal-stm32.c</FilePath>
             </File>
             <File>
               <FileName>ledk.c</FileName>
@@ -627,11 +597,6 @@
               <FileName>pdoklut.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\powerlink\stack\src\kernel\pdo\pdoklut.c</FilePath>
-            </File>
-            <File>
-              <FileName>hrestimer-stm32.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\powerlink\stack\src\kernel\timer\hrestimer-stm32.c</FilePath>
             </File>
             <File>
               <FileName>timesynck.c</FileName>
@@ -702,11 +667,6 @@
               <FileName>eventucalintf-circbuf.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\powerlink\stack\src\user\event\eventucalintf-circbuf.c</FilePath>
-            </File>
-            <File>
-              <FileName>eventucal-stm32.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\powerlink\stack\src\user\event\eventucal-stm32.c</FilePath>
             </File>
             <File>
               <FileName>identu.c</FileName>
@@ -829,11 +789,6 @@
               <FilePath>.\powerlink\stack\src\user\sdo\sdotest-seq.c</FilePath>
             </File>
             <File>
-              <FileName>timer-stm32user.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\powerlink\stack\src\user\timer\timer-stm32user.c</FilePath>
-            </File>
-            <File>
               <FileName>timesyncu.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\powerlink\stack\src\user\timesync\timesyncu.c</FilePath>
@@ -852,6 +807,111 @@
               <FileName>trace-printf.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\powerlink\contrib\trace\trace-printf.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>app</GroupName>
+          <Files>
+            <File>
+              <FileName>app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app\app.c</FilePath>
+            </File>
+            <File>
+              <FileName>app.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\app\app.h</FilePath>
+            </File>
+            <File>
+              <FileName>event.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app\event.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>common</GroupName>
+          <Files>
+            <File>
+              <FileName>eventlog.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\eventlog\eventlog.c</FilePath>
+            </File>
+            <File>
+              <FileName>eventlogstring.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\eventlog\eventlogstring.c</FilePath>
+            </File>
+            <File>
+              <FileName>obdcreate.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\obdcreate\obdcreate.c</FilePath>
+            </File>
+            <File>
+              <FileName>getopt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\powerlink\contrib\getopt\getopt.c</FilePath>
+            </File>
+            <File>
+              <FileName>console-stm32.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\powerlink\contrib\console\console-stm32.c</FilePath>
+            </File>
+            <File>
+              <FileName>printlog.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\powerlink\contrib\console\printlog.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>port</GroupName>
+          <Files>
+            <File>
+              <FileName>netif-stm32.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\powerlink\stack\src\arch\stm32\netif-stm32.c</FilePath>
+            </File>
+            <File>
+              <FileName>target-stm32.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\powerlink\stack\src\arch\stm32\target-stm32.c</FilePath>
+            </File>
+            <File>
+              <FileName>target-mutex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\powerlink\stack\src\arch\stm32\target-mutex.c</FilePath>
+            </File>
+            <File>
+              <FileName>edrv-rawsock_stm32.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\powerlink\stack\src\kernel\edrv\edrv-rawsock_stm32.c</FilePath>
+            </File>
+            <File>
+              <FileName>eventkcal-stm32.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\powerlink\stack\src\kernel\event\eventkcal-stm32.c</FilePath>
+            </File>
+            <File>
+              <FileName>hrestimer-stm32.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\powerlink\stack\src\kernel\timer\hrestimer-stm32.c</FilePath>
+            </File>
+            <File>
+              <FileName>circbuf-stm32.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\powerlink\stack\src\common\circbuf\circbuf-stm32.c</FilePath>
+            </File>
+            <File>
+              <FileName>eventucal-stm32.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\powerlink\stack\src\user\event\eventucal-stm32.c</FilePath>
+            </File>
+            <File>
+              <FileName>timer-stm32user.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\powerlink\stack\src\user\timer\timer-stm32user.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1028,7 +1088,31 @@
         </targetInfos>
       </file>
       <file attr="config" category="header" name="RTE_Driver\Config\RTE_Device.h" version="1.1.2">
-        <instance index="0">RTE\Device\STM32F103RC\RTE_Device.h</instance>
+        <instance index="0" removed="1">RTE\Device\STM32F103RC\RTE_Device.h</instance>
+        <component Cclass="Device" Cgroup="Startup" Cvendor="Keil" Cversion="1.0.0" condition="STM32F1xx CMSIS"/>
+        <package name="STM32F1xx_DFP" schemaVersion="1.7.2" url="http://www.keil.com/pack/" vendor="Keil" version="2.4.0"/>
+        <targetInfos/>
+      </file>
+      <file attr="config" category="source" condition="STM32F1xx HD ARMCC" name="Device\Source\ARM\startup_stm32f10x_hd.s" version="1.0.1">
+        <instance index="0" removed="1">RTE\Device\STM32F103RC\startup_stm32f10x_hd.s</instance>
+        <component Cclass="Device" Cgroup="Startup" Cvendor="Keil" Cversion="1.0.0" condition="STM32F1xx CMSIS"/>
+        <package name="STM32F1xx_DFP" schemaVersion="1.7.2" url="http://www.keil.com/pack/" vendor="Keil" version="2.4.0"/>
+        <targetInfos/>
+      </file>
+      <file attr="config" category="source" name="Device\StdPeriph_Driver\templates\stm32f10x_conf.h" version="3.6.0">
+        <instance index="0" removed="1">RTE\Device\STM32F103RC\stm32f10x_conf.h</instance>
+        <component Cclass="Device" Cgroup="StdPeriph Drivers" Csub="Framework" Cvendor="Keil" Cversion="3.6.0" condition="STM32F1xx STDPERIPH"/>
+        <package name="STM32F1xx_DFP" schemaVersion="1.7.2" url="http://www.keil.com/pack/" vendor="Keil" version="2.4.0"/>
+        <targetInfos/>
+      </file>
+      <file attr="config" category="source" name="Device\Source\system_stm32f10x.c" version="1.0.1">
+        <instance index="0" removed="1">RTE\Device\STM32F103RC\system_stm32f10x.c</instance>
+        <component Cclass="Device" Cgroup="Startup" Cvendor="Keil" Cversion="1.0.0" condition="STM32F1xx CMSIS"/>
+        <package name="STM32F1xx_DFP" schemaVersion="1.7.2" url="http://www.keil.com/pack/" vendor="Keil" version="2.4.0"/>
+        <targetInfos/>
+      </file>
+      <file attr="config" category="header" name="RTE_Driver\Config\RTE_Device.h" version="1.1.2">
+        <instance index="0">RTE\Device\STM32F103VE\RTE_Device.h</instance>
         <component Cclass="Device" Cgroup="Startup" Cvendor="Keil" Cversion="1.0.0" condition="STM32F1xx CMSIS"/>
         <package name="STM32F1xx_DFP" schemaVersion="1.7.2" url="http://www.keil.com/pack/" vendor="Keil" version="2.4.0"/>
         <targetInfos>
@@ -1036,7 +1120,7 @@
         </targetInfos>
       </file>
       <file attr="config" category="source" condition="STM32F1xx HD ARMCC" name="Device\Source\ARM\startup_stm32f10x_hd.s" version="1.0.1">
-        <instance index="0">RTE\Device\STM32F103RC\startup_stm32f10x_hd.s</instance>
+        <instance index="0">RTE\Device\STM32F103VE\startup_stm32f10x_hd.s</instance>
         <component Cclass="Device" Cgroup="Startup" Cvendor="Keil" Cversion="1.0.0" condition="STM32F1xx CMSIS"/>
         <package name="STM32F1xx_DFP" schemaVersion="1.7.2" url="http://www.keil.com/pack/" vendor="Keil" version="2.4.0"/>
         <targetInfos>
@@ -1044,7 +1128,7 @@
         </targetInfos>
       </file>
       <file attr="config" category="source" name="Device\StdPeriph_Driver\templates\stm32f10x_conf.h" version="3.6.0">
-        <instance index="0">RTE\Device\STM32F103RC\stm32f10x_conf.h</instance>
+        <instance index="0">RTE\Device\STM32F103VE\stm32f10x_conf.h</instance>
         <component Cclass="Device" Cgroup="StdPeriph Drivers" Csub="Framework" Cvendor="Keil" Cversion="3.6.0" condition="STM32F1xx STDPERIPH"/>
         <package name="STM32F1xx_DFP" schemaVersion="1.7.2" url="http://www.keil.com/pack/" vendor="Keil" version="2.4.0"/>
         <targetInfos>
@@ -1052,7 +1136,7 @@
         </targetInfos>
       </file>
       <file attr="config" category="source" name="Device\Source\system_stm32f10x.c" version="1.0.1">
-        <instance index="0">RTE\Device\STM32F103RC\system_stm32f10x.c</instance>
+        <instance index="0">RTE\Device\STM32F103VE\system_stm32f10x.c</instance>
         <component Cclass="Device" Cgroup="Startup" Cvendor="Keil" Cversion="1.0.0" condition="STM32F1xx CMSIS"/>
         <package name="STM32F1xx_DFP" schemaVersion="1.7.2" url="http://www.keil.com/pack/" vendor="Keil" version="2.4.0"/>
         <targetInfos>

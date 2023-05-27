@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 // includes
 //------------------------------------------------------------------------------
+#include "cmsis_compiler.h"
 #include <common/oplkinc.h>
 #include <common/target.h>
 
@@ -134,6 +135,7 @@ milliseconds have elapsed.
 void target_msleep(UINT32 milliSeconds_p)
 {
     //Sleep(milliSeconds_p);
+	osDelay(milliSeconds_p);
 }
 
 //------------------------------------------------------------------------------
@@ -152,6 +154,11 @@ This function enables/disables global interrupts.
 void target_enableGlobalInterrupt(BOOL fEnable_p)
 {
     UNUSED_PARAMETER(fEnable_p);
+	if(fEnable_p){
+		__enable_irq();
+	}else{
+		__disable_irq();
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -203,7 +210,9 @@ This function returns the current system tick determined by the system timer.
 UINT32 target_getTickCount(void)
 {
     //return GetTickCount();
-	return 0;
+	return osKernelGetTickCount();
+	//return osKernelGetSysTimerCount();
+	//return OS_Tick_GetCount();
 }
 
 //------------------------------------------------------------------------------

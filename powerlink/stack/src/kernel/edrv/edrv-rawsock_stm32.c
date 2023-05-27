@@ -46,6 +46,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <kernel/hrestimer.h>           // using definition of tHresCallback
 
 #include <string.h>
+#include "socket.h"
+#include "w5500.h"
 
 //============================================================================//
 //            G L O B A L   D E F I N I T I O N S                             //
@@ -91,7 +93,7 @@ typedef struct
     osMutexId_t         mutex;                           ///< Mutex for locking of critical sections
     osSemaphoreId_t     syncSem;                         ///< Semaphore for signaling the start of the worker thread
     int                 sock;                            ///< Raw socket handle
-    osThreadId_t           hThread;                         ///< Handle of the worker thread
+    osThreadId_t        hThread;                         ///< Handle of the worker thread
     BOOL                fStartCommunication;             ///< Flag to indicate, that communication is started. Set to false on exit
     BOOL                fThreadIsExited;                 ///< Set by thread if already exited
 } tEdrvInstance;
@@ -107,7 +109,7 @@ static tEdrvInstance edrvInstance_l;
 static void     packetHandler(void* pParam_p,
                               const int frameSize_p,
                               void* pPktData_p);
-static void*    workerThread(void* pArgument_p);
+static void     workerThread(void* pArgument_p);
 static void     getMacAdrs(const char* pIfName_p, UINT8* pMacAddr_p);
 static BOOL     getLinkStatus(const char* pIfName_p);
 
@@ -137,38 +139,39 @@ tOplkError edrv_init(const tEdrvInitParam* pEdrvInitParam_p)
 //    struct ifreq        ifr;
 //    int                 blockingMode = 0;
 
-//    // Check parameter validity
-//    ASSERT(pEdrvInitParam_p != NULL);
+    // Check parameter validity
+    ASSERT(pEdrvInitParam_p != NULL);
 
-//    // Clear instance structure
-//    OPLK_MEMSET(&edrvInstance_l, 0, sizeof(edrvInstance_l));
+    // Clear instance structure
+    OPLK_MEMSET(&edrvInstance_l, 0, sizeof(edrvInstance_l));
 
-//    if (pEdrvInitParam_p->pDevName == NULL)
-//        return kErrorEdrvInit;
+    if (pEdrvInitParam_p->pDevName == NULL)
+        return kErrorEdrvInit;
 
-//    // Save the init data
-//    edrvInstance_l.initParam = *pEdrvInitParam_p;
+    // Save the init data
+    edrvInstance_l.initParam = *pEdrvInitParam_p;
 
-//    edrvInstance_l.fStartCommunication = TRUE;
-//    edrvInstance_l.fThreadIsExited = FALSE;
+    edrvInstance_l.fStartCommunication = TRUE;
+    edrvInstance_l.fThreadIsExited = FALSE;
 
-//    // If no MAC address was specified read MAC address of used
-//    // Ethernet interface
-//    if ((edrvInstance_l.initParam.aMacAddr[0] == 0) &&
-//        (edrvInstance_l.initParam.aMacAddr[1] == 0) &&
-//        (edrvInstance_l.initParam.aMacAddr[2] == 0) &&
-//        (edrvInstance_l.initParam.aMacAddr[3] == 0) &&
-//        (edrvInstance_l.initParam.aMacAddr[4] == 0) &&
-//        (edrvInstance_l.initParam.aMacAddr[5] == 0))
-//    {   // read MAC address from controller
-//        getMacAdrs(edrvInstance_l.initParam.pDevName,
-//                   edrvInstance_l.initParam.aMacAddr);
-//    }
+    // If no MAC address was specified read MAC address of used
+    // Ethernet interface
+    if ((edrvInstance_l.initParam.aMacAddr[0] == 0) &&
+        (edrvInstance_l.initParam.aMacAddr[1] == 0) &&
+        (edrvInstance_l.initParam.aMacAddr[2] == 0) &&
+        (edrvInstance_l.initParam.aMacAddr[3] == 0) &&
+        (edrvInstance_l.initParam.aMacAddr[4] == 0) &&
+        (edrvInstance_l.initParam.aMacAddr[5] == 0))
+    {   // read MAC address from controller
+        getMacAdrs(edrvInstance_l.initParam.pDevName,
+                   edrvInstance_l.initParam.aMacAddr);
+    }
 //    if (pthread_mutex_init(&edrvInstance_l.mutex, NULL) != 0)
 //    {
 //        DEBUG_LVL_ERROR_TRACE("%s() couldn't init mutex\n", __func__);
 //        return kErrorEdrvInit;
 //    }
+		  edrvInstance_l.mutex = osMutexNew(NULL);
 
 //    edrvInstance_l.sock = socket(PF_PACKET, SOCK_RAW, htons(PROTO_PLK));
 //    if (edrvInstance_l.sock < 0)
@@ -176,6 +179,12 @@ tOplkError edrv_init(const tEdrvInitParam* pEdrvInitParam_p)
 //        DEBUG_LVL_ERROR_TRACE("%s() cannot open socket. Error = %s\n", __func__, strerror(errno));
 //        return kErrorEdrvInit;
 //    }
+		edrvInstance_l.sock = socket(0, Sn_MR_MACRAW, 0,0);
+    if (edrvInstance_l.sock < 0)
+    {
+        DEBUG_LVL_ERROR_TRACE("%s() cannot open socket\n", __func__);
+        return kErrorEdrvInit;
+    }
 
 //    if (ioctl(edrvInstance_l.sock, FIONBIO, &blockingMode) != 0)
 //    {
@@ -237,12 +246,16 @@ tOplkError edrv_init(const tEdrvInitParam* pEdrvInitParam_p)
 //        return kErrorEdrvInit;
 //    }
 
+			edrvInstance_l.syncSem = osSemaphoreNew(100, 0,NULL);
+
 //    if (pthread_create(&edrvInstance_l.hThread, NULL,
 //                       workerThread, &edrvInstance_l) != 0)
 //    {
 //        DEBUG_LVL_ERROR_TRACE("%s() Couldn't create worker thread!\n", __func__);
 //        return kErrorEdrvInit;
 //    }
+
+		  edrvInstance_l.hThread = osThreadNew(workerThread,&edrvInstance_l,NULL);
 
 //    schedParam.sched_priority = CONFIG_THREAD_PRIORITY_MEDIUM;
 //    if (pthread_setschedparam(edrvInstance_l.hThread, SCHED_FIFO, &schedParam) != 0)
@@ -280,14 +293,19 @@ tOplkError edrv_exit(void)
 
 //    if (edrvInstance_l.fThreadIsExited)
 //        pthread_cancel(edrvInstance_l.hThread);
+	
+	  osDelay(1000U);
+		if (edrvInstance_l.fThreadIsExited){
+			osThreadTerminate(edrvInstance_l.hThread);
+		}
 
 //    pthread_mutex_destroy(&edrvInstance_l.mutex);
+    osMutexDelete(edrvInstance_l.mutex);
+    // Close the socket
+    close(edrvInstance_l.sock);
 
-//    // Close the socket
-//    close(edrvInstance_l.sock);
-
-//    // Clear instance structure
-//    OPLK_MEMSET(&edrvInstance_l, 0, sizeof(edrvInstance_l));
+    // Clear instance structure
+    OPLK_MEMSET(&edrvInstance_l, 0, sizeof(edrvInstance_l));
 
     return kErrorOk;
 }
@@ -323,51 +341,53 @@ This function sends the Tx buffer.
 //------------------------------------------------------------------------------
 tOplkError edrv_sendTxBuffer(tEdrvTxBuffer* pBuffer_p)
 {
-//    int    sockRet;
+    int    sockRet;
 
-//    // Check parameter validity
-//    ASSERT(pBuffer_p != NULL);
+    // Check parameter validity
+    ASSERT(pBuffer_p != NULL);
 
-//    FTRACE_MARKER("%s", __func__);
+    FTRACE_MARKER("%s", __func__);
 
-//    if (pBuffer_p->txBufferNumber.pArg != NULL)
-//        return kErrorInvalidOperation;
+    if (pBuffer_p->txBufferNumber.pArg != NULL)
+        return kErrorInvalidOperation;
 
-//    if (getLinkStatus(edrvInstance_l.initParam.pDevName) == FALSE)
-//    {
-//        /* If there is no link, we pretend that the packet is sent and immediately call
-//         * tx handler. Otherwise the stack would hang! */
-//        if (pBuffer_p->pfnTxHandler != NULL)
-//        {
-//            pBuffer_p->pfnTxHandler(pBuffer_p);
-//        }
-//    }
-//    else
-//    {
-//        pthread_mutex_lock(&edrvInstance_l.mutex);
-//        if (edrvInstance_l.pTransmittedTxBufferLastEntry == NULL)
-//        {
-//            edrvInstance_l.pTransmittedTxBufferLastEntry = pBuffer_p;
-//            edrvInstance_l.pTransmittedTxBufferFirstEntry = pBuffer_p;
-//        }
-//        else
-//        {
-//            edrvInstance_l.pTransmittedTxBufferLastEntry->txBufferNumber.pArg = pBuffer_p;
-//            edrvInstance_l.pTransmittedTxBufferLastEntry = pBuffer_p;
-//        }
-//        pthread_mutex_unlock(&edrvInstance_l.mutex);
+    if (getLinkStatus(edrvInstance_l.initParam.pDevName) == FALSE)
+    {
+        /* If there is no link, we pretend that the packet is sent and immediately call
+         * tx handler. Otherwise the stack would hang! */
+        if (pBuffer_p->pfnTxHandler != NULL)
+        {
+            pBuffer_p->pfnTxHandler(pBuffer_p);
+        }
+    }
+    else
+    {
+        //pthread_mutex_lock(&edrvInstance_l.mutex);
+			  osMutexAcquire(edrvInstance_l.mutex,osWaitForever);
+        if (edrvInstance_l.pTransmittedTxBufferLastEntry == NULL)
+        {
+            edrvInstance_l.pTransmittedTxBufferLastEntry = pBuffer_p;
+            edrvInstance_l.pTransmittedTxBufferFirstEntry = pBuffer_p;
+        }
+        else
+        {
+            edrvInstance_l.pTransmittedTxBufferLastEntry->txBufferNumber.pArg = pBuffer_p;
+            edrvInstance_l.pTransmittedTxBufferLastEntry = pBuffer_p;
+        }
+        //pthread_mutex_unlock(&edrvInstance_l.mutex);
+				osMutexRelease(edrvInstance_l.mutex);
 
-//        sockRet = send(edrvInstance_l.sock, (u_char*)pBuffer_p->pBuffer, (int)pBuffer_p->txFrameSize, 0);
-//        if (sockRet < 0)
-//        {
-//            DEBUG_LVL_EDRV_TRACE("%s() send() returned %d\n", __func__, sockRet);
-//            return kErrorInvalidOperation;
-//        }
-//        else
-//        {
-//            packetHandler((u_char*)&edrvInstance_l, sockRet, pBuffer_p->pBuffer);
-//        }
-//    }
+        sockRet = send(edrvInstance_l.sock, (u_char*)pBuffer_p->pBuffer, (int)pBuffer_p->txFrameSize);
+        if (sockRet < 0)
+        {
+            DEBUG_LVL_EDRV_TRACE("%s() send() returned %d\n", __func__, sockRet);
+            return kErrorInvalidOperation;
+        }
+        else
+        {
+            packetHandler((u_char*)&edrvInstance_l, sockRet, pBuffer_p->pBuffer);
+        }
+    }
 
     return kErrorOk;
 }
@@ -532,77 +552,78 @@ static void packetHandler(void* pParam_p,
                           const int frameSize_p,
                           void* pPktData_p)
 {
-//    tEdrvInstance*  pInstance = (tEdrvInstance*)pParam_p;
-//    tEdrvRxBuffer   rxBuffer;
+    tEdrvInstance*  pInstance = (tEdrvInstance*)pParam_p;
+    tEdrvRxBuffer   rxBuffer;
 
-//    if (OPLK_MEMCMP((UINT8*)pPktData_p + 6, pInstance->initParam.aMacAddr, 6) != 0)
-//    {   // filter out self generated traffic
-//        rxBuffer.bufferInFrame = kEdrvBufferLastInFrame;
-//        rxBuffer.rxFrameSize = frameSize_p;
-//        rxBuffer.pBuffer = pPktData_p;
+    if (OPLK_MEMCMP((UINT8*)pPktData_p + 6, pInstance->initParam.aMacAddr, 6) != 0)
+    {   // filter out self generated traffic
+        rxBuffer.bufferInFrame = kEdrvBufferLastInFrame;
+        rxBuffer.rxFrameSize = frameSize_p;
+        rxBuffer.pBuffer = pPktData_p;
 
-//        FTRACE_MARKER("%s RX", __func__);
-//        pInstance->initParam.pfnRxHandler(&rxBuffer);
-//    }
-//    else
-//    {   // self generated traffic
-//        FTRACE_MARKER("%s TX-receive", __func__);
+        FTRACE_MARKER("%s RX", __func__);
+        pInstance->initParam.pfnRxHandler(&rxBuffer);
+    }
+    else
+    {   // self generated traffic
+        FTRACE_MARKER("%s TX-receive", __func__);
 
-//        if (pInstance->pTransmittedTxBufferFirstEntry != NULL)
-//        {
-//            tEdrvTxBuffer* pTxBuffer = pInstance->pTransmittedTxBufferFirstEntry;
+        if (pInstance->pTransmittedTxBufferFirstEntry != NULL)
+        {
+            tEdrvTxBuffer* pTxBuffer = pInstance->pTransmittedTxBufferFirstEntry;
 
-//            if (pTxBuffer->pBuffer != NULL)
-//            {
-//                if (OPLK_MEMCMP(pPktData_p, pTxBuffer->pBuffer, 6) == 0)
-//                {   // compare with packet buffer with destination MAC
-//                    pthread_mutex_lock(&pInstance->mutex);
-//                    pInstance->pTransmittedTxBufferFirstEntry = (tEdrvTxBuffer*)pInstance->pTransmittedTxBufferFirstEntry->txBufferNumber.pArg;
-//                    if (pInstance->pTransmittedTxBufferFirstEntry == NULL)
-//                    {
-//                        pInstance->pTransmittedTxBufferLastEntry = NULL;
-//                    }
-//                    pthread_mutex_unlock(&pInstance->mutex);
+            if (pTxBuffer->pBuffer != NULL)
+            {
+                if (OPLK_MEMCMP(pPktData_p, pTxBuffer->pBuffer, 6) == 0)
+                {   // compare with packet buffer with destination MAC
+                    //pthread_mutex_lock(&pInstance->mutex);
+									  osMutexAcquire(edrvInstance_l.mutex,osWaitForever);
+                    pInstance->pTransmittedTxBufferFirstEntry = (tEdrvTxBuffer*)pInstance->pTransmittedTxBufferFirstEntry->txBufferNumber.pArg;
+                    if (pInstance->pTransmittedTxBufferFirstEntry == NULL)
+                    {
+                        pInstance->pTransmittedTxBufferLastEntry = NULL;
+                    }
+                    //pthread_mutex_unlock(&pInstance->mutex);
+										osMutexRelease(edrvInstance_l.mutex);
+                    pTxBuffer->txBufferNumber.pArg = NULL;
 
-//                    pTxBuffer->txBufferNumber.pArg = NULL;
-
-//                    if (pTxBuffer->pfnTxHandler != NULL)
-//                    {
-//                        pTxBuffer->pfnTxHandler(pTxBuffer);
-//                    }
-//                }
-//                else
-//                {
-//                    TRACE("%s: no matching TxB: DstMAC=%02X%02X%02X%02X%02X%02X\n",
-//                          __func__,
-//                          (UINT)((UINT8*)pPktData_p)[0],
-//                          (UINT)((UINT8*)pPktData_p)[1],
-//                          (UINT)((UINT8*)pPktData_p)[2],
-//                          (UINT)((UINT8*)pPktData_p)[3],
-//                          (UINT)((UINT8*)pPktData_p)[4],
-//                          (UINT)((UINT8*)pPktData_p)[5]);
-//                    TRACE("   current TxB %p: DstMAC=%02X%02X%02X%02X%02X%02X\n",
-//                          (void*)pTxBuffer,
-//                          (UINT)((UINT8*)(pTxBuffer->pBuffer))[0],
-//                          (UINT)((UINT8*)(pTxBuffer->pBuffer))[1],
-//                          (UINT)((UINT8*)(pTxBuffer->pBuffer))[2],
-//                          (UINT)((UINT8*)(pTxBuffer->pBuffer))[3],
-//                          (UINT)((UINT8*)(pTxBuffer->pBuffer))[4],
-//                          (UINT)((UINT8*)(pTxBuffer->pBuffer))[5]);
-//                }
-//            }
-//        }
-//        else
-//        {
-//            TRACE("%s: no TxB: DstMAC=%02X%02X%02X%02X%02X%02X\n", __func__,
-//                  ((UINT8*)pPktData_p)[0],
-//                  ((UINT8*)pPktData_p)[1],
-//                  ((UINT8*)pPktData_p)[2],
-//                  ((UINT8*)pPktData_p)[3],
-//                  ((UINT8*)pPktData_p)[4],
-//                  ((UINT8*)pPktData_p)[5]);
-//        }
-//    }
+                    if (pTxBuffer->pfnTxHandler != NULL)
+                    {
+                        pTxBuffer->pfnTxHandler(pTxBuffer);
+                    }
+                }
+                else
+                {
+                    TRACE("%s: no matching TxB: DstMAC=%02X%02X%02X%02X%02X%02X\n",
+                          __func__,
+                          (UINT)((UINT8*)pPktData_p)[0],
+                          (UINT)((UINT8*)pPktData_p)[1],
+                          (UINT)((UINT8*)pPktData_p)[2],
+                          (UINT)((UINT8*)pPktData_p)[3],
+                          (UINT)((UINT8*)pPktData_p)[4],
+                          (UINT)((UINT8*)pPktData_p)[5]);
+                    TRACE("   current TxB %p: DstMAC=%02X%02X%02X%02X%02X%02X\n",
+                          (void*)pTxBuffer,
+                          (UINT)((UINT8*)(pTxBuffer->pBuffer))[0],
+                          (UINT)((UINT8*)(pTxBuffer->pBuffer))[1],
+                          (UINT)((UINT8*)(pTxBuffer->pBuffer))[2],
+                          (UINT)((UINT8*)(pTxBuffer->pBuffer))[3],
+                          (UINT)((UINT8*)(pTxBuffer->pBuffer))[4],
+                          (UINT)((UINT8*)(pTxBuffer->pBuffer))[5]);
+                }
+            }
+        }
+        else
+        {
+            TRACE("%s: no TxB: DstMAC=%02X%02X%02X%02X%02X%02X\n", __func__,
+                  ((UINT8*)pPktData_p)[0],
+                  ((UINT8*)pPktData_p)[1],
+                  ((UINT8*)pPktData_p)[2],
+                  ((UINT8*)pPktData_p)[3],
+                  ((UINT8*)pPktData_p)[4],
+                  ((UINT8*)pPktData_p)[5]);
+        }
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -616,28 +637,28 @@ This function implements the edrv worker thread. It is responsible to receive fr
 \return The function returns a thread error code.
 */
 //------------------------------------------------------------------------------
-static void* workerThread(void* pArgument_p)
+static void workerThread(void* pArgument_p)
 {
-//    tEdrvInstance*  pInstance = (tEdrvInstance*)pArgument_p;
-//    int             rawSockRet;
-//    u_char          aBuffer[EDRV_MAX_FRAME_SIZE];
+    tEdrvInstance*  pInstance = (tEdrvInstance*)pArgument_p;
+    int             rawSockRet;
+    u_char          aBuffer[EDRV_MAX_FRAME_SIZE];
 
-//    DEBUG_LVL_EDRV_TRACE("%s(): ThreadId:%ld\n", __func__, syscall(SYS_gettid));
+    DEBUG_LVL_EDRV_TRACE("%s(): ThreadId:%ld\n", __func__, syscall(SYS_gettid));
 
-//    // signal that thread is successfully started
-//    sem_post(&pInstance->syncSem);
+    // signal that thread is successfully started
+    //sem_post(&pInstance->syncSem);
+	 osSemaphoreRelease(pInstance->syncSem);
 
-//    while (edrvInstance_l.fStartCommunication)
-//    {
-//        rawSockRet = recvfrom(edrvInstance_l.sock, aBuffer, EDRV_MAX_FRAME_SIZE, 0, 0, 0);
-//        if (rawSockRet > 0)
-//        {
-//            packetHandler(pInstance, rawSockRet, aBuffer);
-//        }
-//    }
-//    edrvInstance_l.fThreadIsExited = TRUE;
+    while (edrvInstance_l.fStartCommunication)
+    {
+        rawSockRet = recvfrom(edrvInstance_l.sock, aBuffer, EDRV_MAX_FRAME_SIZE, 0, 0);
+        if (rawSockRet > 0)
+        {
+            packetHandler(pInstance, rawSockRet, aBuffer);
+        }
+    }
+    edrvInstance_l.fThreadIsExited = TRUE;
 
-    return NULL;
 }
 
 //------------------------------------------------------------------------------
@@ -652,19 +673,11 @@ This function gets the interface's MAC address.
 //------------------------------------------------------------------------------
 static void getMacAdrs(const char* pIfName_p, UINT8* pMacAddr_p)
 {
-//    int             fd;
-//    struct ifreq    ifr;
-
-//    fd = socket(AF_INET, SOCK_DGRAM, 0);
-
-//    ifr.ifr_addr.sa_family = AF_INET;
-//    strncpy(ifr.ifr_name, pIfName_p, IFNAMSIZ - 1);
-
-//    ioctl(fd, SIOCGIFHWADDR, &ifr);
-
-//    close(fd);
-
-//    OPLK_MEMCPY(pMacAddr_p, ifr.ifr_hwaddr.sa_data, 6);
+	uint8 mac[6]={0,0,0,0,0,0}; 
+	strncpy("localMAC", pIfName_p, strlen("localMAC"));
+	    
+	getSHAR(mac);
+	OPLK_MEMCPY(pMacAddr_p,mac, 6);
 }
 
 //------------------------------------------------------------------------------
@@ -706,6 +719,14 @@ static BOOL getLinkStatus(const char* pIfName_p)
 //    }
 
 //    close(fd);
+    uint8 buf[2];
+		getPHYCFGR(buf);
+    if(buf[0] & PHYCFGR_LNK_ON)
+		{
+			fRunning = TRUE;
+		}else{
+			fRunning = FALSE;
+		}
 
     return fRunning;
 }

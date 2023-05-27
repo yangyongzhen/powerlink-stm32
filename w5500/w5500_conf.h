@@ -12,55 +12,6 @@ extern uint16   local_port;                             	  /* 定义本地端口      
 extern uint8    use_dhcp;                              	    /* 是否使用DHCP获取IP           */
 extern uint8    use_eeprom;                             	  /* 是否使用EEPROM中的IP配置信息 */
 
-/*
- * 通过宏定义选择目标开发板
- * STM32F103ZET6 -> 野火ISO-V3开发板
- * STM32F103VET6 -> 野火ISO-MINI-V3开发板
- */
-/*使用野火ISO-MINI-V3开发板*/
-#define STM32F103VET6
-#undef  STM32F103ZET6
-
-/*定义SPI2作为W5500的硬件接口*/
-#define WIZ_SPIx_GPIO_PORT      GPIOB									  	  /* GPIO端口                     */
-#define WIZ_SPIx_GPIO_CLK       RCC_APB2Periph_GPIOB	  	  /* GPIO端口时钟                 */
-#define WIZ_SPIx                SPI2                   	    /* 定义W5500所用的SPI接口       */
-#define WIZ_SPIx_CLK_CMD        RCC_APB1PeriphClockCmd
-#define WIZ_SPIx_CLK            RCC_APB1Periph_SPI2    	    /* 定义W5500所用的SPI接口时钟   */
-#define WIZ_SPIx_SCLK           GPIO_Pin_13						   	  /* 定义W5500的时钟管脚          */
-#define WIZ_SPIx_MISO           GPIO_Pin_14						   	  /* 定义W5500的MISO管脚          */
-#define WIZ_SPIx_MOSI           GPIO_Pin_15						   	  /* 定义W5500的MOSI管脚          */
-
-
-
-#ifdef  STM32F103ZET6 
-  #define WIZ_SPIx_SCS          GPIO_Pin_9						   	  /* 定义W5500的片选管脚          */
-  #define WIZ_SPIx_SCS_PORT     GPIOG									   	  /* GPIO端口                     */
-  #define WIZ_SPIx_SCS_CLK      RCC_APB2Periph_GPIOG	   	  /* GPIO端口时钟                 */
-   
-	#define WIZ_RESET             GPIO_Pin_15									/* 定义W5500的RESET管脚         */
-  #define WIZ_SPIx_RESET_PORT   GPIOG									   	  /* GPIO端口                     */
-  #define WIZ_SPIx_RESET_CLK    RCC_APB2Periph_GPIOG	  	  /* GPIO端口时钟                 */
-  
-	#define WIZ_INT               GPIO_Pin_8									/* 定义W5500的INT管脚           */
-  #define WIZ_SPIx_INT_PORT     GPIOG									  	  /* GPIO端口                     */
-  #define WIZ_SPIx_INT_CLK      RCC_APB2Periph_GPIOG		    /* GPIO端口时钟                 */
-#endif
-
-
-#ifdef STM32F103VET6 
-  #define WIZ_SPIx_SCS          GPIO_Pin_12						 	    /* 定义W5500的片选管脚          */
-  #define WIZ_SPIx_SCS_PORT     GPIOB									 	    /* GPIO端口                     */
-  #define WIZ_SPIx_SCS_CLK      RCC_APB2Periph_GPIOB	 	    /* GPIO端口时钟                 */
-  
-	#define WIZ_RESET             GPIO_Pin_7									/* 定义W5500的RESET管脚         */
-  #define WIZ_SPIx_RESET_PORT   GPIOC									  	  /* GPIO端口                     */
-  #define WIZ_SPIx_RESET_CLK    RCC_APB2Periph_GPIOC	 	    /* GPIO端口时钟                 */
-  
-	#define WIZ_INT               GPIO_Pin_6									/* 定义W5500的INT管脚           */
-  #define WIZ_SPIx_INT_PORT     GPIOC									      /* GPIO端口                     */
-  #define WIZ_SPIx_INT_CLK      RCC_APB2Periph_GPIOC	      /* GPIO端口时钟                 */
-#endif
 
 #define FW_VER_HIGH  						1               
 #define FW_VER_LOW    					0

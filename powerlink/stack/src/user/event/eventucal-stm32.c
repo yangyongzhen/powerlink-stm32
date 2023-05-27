@@ -82,9 +82,9 @@ CAL module.
 */
 typedef struct
 {
-    void*                  threadHandle;
-    void*                  semUserData;
-    void*                  semKernelData;
+    osThreadId_t                  threadHandle;
+    osSemaphoreId_t               semUserData;
+    osSemaphoreId_t               semKernelData;
     BOOL                    fInitialized;
     BOOL                    fStopThread;
 } tEventuCalInstance;
@@ -97,7 +97,7 @@ tEventuCalInstance          instance_l;             ///< Instance variable of us
 //------------------------------------------------------------------------------
 // local function prototypes
 //------------------------------------------------------------------------------
-static UINT32  eventThread(void* arg);
+static void eventThread(void* arg);
 static void         signalUserEvent(void);
 static void         signalKernelEvent(void);
 
@@ -129,6 +129,12 @@ tOplkError eventucal_init(void)
 
 //    if ((instance_l.semKernelData = CreateSemaphore(NULL, 0, 100, "Local\\semKernelEvent")) == NULL)
 //        goto Exit;
+	
+	  if ((instance_l.semUserData = osSemaphoreNew(100, 0,NULL)) == NULL)
+			goto Exit;
+
+    if ((instance_l.semKernelData = osSemaphoreNew(100, 0,NULL)) == NULL)
+        goto Exit;
 
     if (eventucal_initQueueCircbuf(kEventQueueK2U) != kErrorOk)
         goto Exit;
@@ -159,6 +165,9 @@ tOplkError eventucal_init(void)
 
 
     // jba set thread priority!!!
+		instance_l.threadHandle = osThreadNew(eventThread,&instance_l,NULL);
+    if (instance_l.threadHandle == NULL)
+        goto Exit;
 
 
     instance_l.fInitialized = TRUE;
@@ -170,6 +179,12 @@ Exit:
 
 //    if (instance_l.semKernelData != NULL)
 //        CloseHandle(instance_l.semKernelData);
+
+	  if (instance_l.semKernelData != NULL)
+        osSemaphoreDelete(instance_l.semKernelData);
+
+    if (instance_l.semUserData != NULL)
+        osSemaphoreDelete(instance_l.semUserData);
 
     eventucal_exitQueueCircbuf(kEventQueueK2U);
     eventucal_exitQueueCircbuf(kEventQueueU2K);
@@ -207,6 +222,8 @@ tOplkError eventucal_exit(void)
 
         //CloseHandle(instance_l.semUserData);
         //CloseHandle(instance_l.semKernelData);
+			 osSemaphoreDelete(instance_l.semKernelData);
+			 osSemaphoreDelete(instance_l.semUserData);
     }
     instance_l.fInitialized = FALSE;
 
@@ -302,10 +319,10 @@ This function contains the main function for the event handler thread.
 \return The function returns the thread exit code.
 */
 //------------------------------------------------------------------------------
-static UINT32  eventThread(void* arg)
+static void eventThread(void* arg)
 {
     tEventuCalInstance*     pInstance = (tEventuCalInstance*)arg;
-    DWORD                   waitResult;
+    osStatus_t              waitResult;
 
     DEBUG_LVL_EVENTU_TRACE("%s(): User event thread %d waiting for events...\n",
                            __func__,
@@ -313,11 +330,37 @@ static UINT32  eventThread(void* arg)
 
     while (!pInstance->fStopThread)
     {
-       
+      waitResult = osSemaphoreAcquire(pInstance->semKernelData, 100UL);       // wait for max. 10 ticks for semaphore token to get available
+			switch (waitResult) {
+				case osOK:
+					DEBUG_LVL_EVENTU_TRACE("%s(): Received user event!\n", __func__);
+
+					/* first handle all kernel to user events --> higher priority! */
+					if (eventucal_getEventCountCircbuf(kEventQueueK2U) > 0)
+							eventucal_processEventCircbuf(kEventQueueK2U);
+					else
+					{
+							if (eventucal_getEventCountCircbuf(kEventQueueUInt) > 0)
+									eventucal_processEventCircbuf(kEventQueueUInt);
+					}
+					break;
+				case osErrorResource:
+					DEBUG_LVL_ERROR_TRACE("User event osErrorResource!\n");
+					break;
+				case osErrorParameter:
+					DEBUG_LVL_ERROR_TRACE("User event osErrorParameter!\n");
+					break;
+				case osErrorTimeout:
+					DEBUG_LVL_ERROR_TRACE("User event timeout!\n");
+					break;
+				default:
+					DEBUG_LVL_ERROR_TRACE("%s() Semaphore wait unknown error! \n",
+                                      __func__);
+					break;
+			}
     }
 
     DEBUG_LVL_EVENTU_TRACE("%s(): User event thread is exiting!\n", __func__);
-    return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -331,6 +374,7 @@ the circular buffer library as signal callback function
 void signalUserEvent(void)
 {
     //ReleaseSemaphore(instance_l.semUserData, 1, NULL);
+	osSemaphoreRelease(instance_l.semUserData);
 }
 
 //------------------------------------------------------------------------------
@@ -344,6 +388,7 @@ the circular buffer library as signal callback function
 void signalKernelEvent(void)
 {
     //ReleaseSemaphore(instance_l.semKernelData, 1, NULL);
+	osSemaphoreRelease(instance_l.semKernelData);
 }
 
 /// \}

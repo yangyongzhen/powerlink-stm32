@@ -396,6 +396,10 @@ void socket_buf_init( uint8 * tx_size, uint8 * rx_size  )
   }
 }
 
+void getPHYCFGR(uint8 *buf){
+	 wiz_read_buf(PHYCFGR, buf, 1);
+}
+
 
 
 

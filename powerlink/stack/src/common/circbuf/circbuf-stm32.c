@@ -79,7 +79,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** \brief Architecture specific part of circular buffer instance */
 typedef struct
 {
-    //HANDLE              lockMutex;      ///< Mutex used for locking
+  osMutexId_t              lockMutex;      ///< Mutex used for locking
 } tCircBufArchInstance;
 
 //------------------------------------------------------------------------------
@@ -134,12 +134,12 @@ tCircBufInstance* circbuf_createInstance(UINT8 id_p, BOOL fNew_p)
     pArch = (tCircBufArchInstance*)pInstance->pCircBufArchInstance;
 
     sprintf(mutexName, "circbufMutex%d", id_p);
-//    if ((pArch->lockMutex = CreateMutex(NULL, FALSE, mutexName)) == NULL)
-//    {
-//        DEBUG_LVL_ERROR_TRACE("%s() creating mutex failed!\n", __func__);
-//        OPLK_FREE(pInstance);
-//        return NULL;
-//    }
+    if ((pArch->lockMutex = osMutexNew(NULL)) == NULL)
+    {
+        DEBUG_LVL_ERROR_TRACE("%s() creating mutex failed!\n", __func__);
+        OPLK_FREE(pInstance);
+        return NULL;
+    }
 
     return pInstance;
 }
@@ -163,7 +163,7 @@ void circbuf_freeInstance(tCircBufInstance* pInstance_p)
     ASSERT(pInstance_p != NULL);
 
     pArch = (tCircBufArchInstance*)pInstance_p->pCircBufArchInstance;
-    //CloseHandle(pArch->lockMutex);
+    osMutexDelete(pArch->lockMutex);
     OPLK_FREE(pInstance_p);
 }
 
@@ -282,13 +282,22 @@ The function enters a locked section of the circular buffer.
 //------------------------------------------------------------------------------
 void circbuf_lock(tCircBufInstance* pInstance_p)
 {
-    DWORD                   waitResult;
+    osStatus_t              waitResult;
     tCircBufArchInstance*   pArchInstance;
 
     // Check parameter validity
     ASSERT(pInstance_p != NULL);
 
     pArchInstance = (tCircBufArchInstance*)pInstance_p->pCircBufArchInstance;
+	  waitResult = osMutexAcquire(pArchInstance->lockMutex, osWaitForever);
+		switch (waitResult) {
+				case osOK:
+					break;
+				default:
+					DEBUG_LVL_ERROR_TRACE("%s() Mutex wait unknown error! Error:%ld\n",
+                                  __func__);
+					break;
+			}
 }
 
 //------------------------------------------------------------------------------
@@ -310,7 +319,7 @@ void circbuf_unlock(tCircBufInstance* pInstance_p)
     ASSERT(pInstance_p != NULL);
 
     pArchInstance = (tCircBufArchInstance*)pInstance_p->pCircBufArchInstance;
-    //ReleaseMutex(pArchInstance->lockMutex);
+    osMutexRelease(pArchInstance->lockMutex);
 }
 
 //============================================================================//
