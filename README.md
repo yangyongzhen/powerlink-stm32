@@ -4,10 +4,20 @@
 powerlink-stm32,openPOWERLINK stack on stm32 mcu transplant
 
 environment：Keil5 MDK + STM32F407+W5500
+
+汇总下资源占用情况，分享给有需要的人参考。(资源包含嵌入式系统RTX内核源码和从站demo功能源码在内)
+
+Program Size: Code=94008 RO-data=15352 RW-data=4204 ZI-data=62212  
+
+RW-data+ZI-data 内存占用 4204+62212  = 66416，超过60K了，主要是字典文件占用内存大。Rom占用：94k。
+
+项目开源，欢迎测试评测。
+
 #### 软件架构
 软件架构说明
 blog.csdn.net/qq8864
 
+博文链接：https://blog.csdn.net/yyz_1987/article/details/130918508
 #### 安装教程
 
 1.  xxxx
@@ -15,7 +25,7 @@ blog.csdn.net/qq8864
 3.  xxxx
 
 #### 使用说明
-
+Keil5 MDK + STM32F407+W5500
 1.  xxxx
 2.  xxxx
 3.  xxxx
