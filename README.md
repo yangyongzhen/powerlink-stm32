@@ -12,7 +12,7 @@ Program Size: Code=94008 RO-data=15352 RW-data=4204 ZI-data=62212
 RW-data+ZI-data 内存占用 4204+62212  = 66416，超过60K了，主要是字典文件占用内存大。Rom占用：94k。
 
 项目开源，欢迎测试评测。
-
+![image](https://github.com/yangyongzhen/powerlink-stm32/assets/8438899/9369fac6-87b7-40bb-8a1c-fbd062c9957b)
 #### 软件架构
 软件架构说明
 blog.csdn.net/qq8864
