@@ -3,9 +3,10 @@
 #### 介绍
 powerlink-stm32
 
+
 #### 软件架构
 软件架构说明
-
+blog.csdn.net/qq8864
 
 #### 安装教程
 
