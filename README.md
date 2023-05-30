@@ -1,7 +1,7 @@
 # powerlink-stm32
 
 #### 介绍
-powerlink-stm32
+powerlink-stm32,openPOWERLINK stack on stm32 mcu transplant
 
 
 #### 软件架构
