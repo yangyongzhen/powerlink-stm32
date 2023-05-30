@@ -3,7 +3,7 @@
 #### 介绍
 powerlink-stm32,openPOWERLINK stack on stm32 mcu transplant
 
-
+environment：Keil5 MDK + STM32F407+W5500
 #### 软件架构
 软件架构说明
 blog.csdn.net/qq8864
